@@ -31,6 +31,7 @@ const elements = {
     cardExam: document.getElementById('card-exam'),
     cardFun: document.getElementById('card-fun'),
     cardHardcore: document.getElementById('card-hardcore'),
+    cardDaiHoi: document.getElementById('card-daihoi'),
     btnStartHardcore: document.getElementById('btn-start-hardcore'),
     
     // Practice Config
@@ -88,6 +89,9 @@ function setupEventListeners() {
     elements.btnBackHome.addEventListener('click', () => navigate('home-screen'));
     elements.cardPractice.addEventListener('click', () => navigate('practice-config-screen'));
     elements.cardExam.addEventListener('click', () => navigate('exam-config-screen'));
+    if (elements.cardDaiHoi) {
+        elements.cardDaiHoi.addEventListener('click', startDaiHoiMode);
+    }
     elements.cardFun.addEventListener('click', startFunMode);
     elements.cardHardcore.addEventListener('click', () => {
         pendingMode = 'hardcore';
@@ -382,6 +386,28 @@ async function startHardcore() {
     startQuiz();
 }
 
+async function startDaiHoiMode() {
+    elements.cardDaiHoi.style.opacity = '0.5';
+    
+    try {
+        const res = await fetch(`DaiHoi.json?t=${new Date().getTime()}`);
+        if (!res.ok) throw new Error('Network response was not ok');
+        const rawData = await res.json();
+        
+        if (!rawData || rawData.length === 0) { alert('Dữ liệu rỗng.'); elements.cardDaiHoi.style.opacity = '1'; return; }
+        
+        state.questions = prepareQuestions(rawData, true, true);
+        state.mode = 'daihoi';
+        elements.cardDaiHoi.style.opacity = '1';
+        
+        startQuiz();
+    } catch (e) {
+        console.error('Failed to load DaiHoi.json', e);
+        alert('Không tải được dữ liệu Đại Hội!');
+        elements.cardDaiHoi.style.opacity = '1';
+    }
+}
+
 function startQuiz() {
     state.currentIndex = 0;
     state.answers = new Array(state.questions.length).fill(null);
@@ -391,6 +417,7 @@ function startQuiz() {
     else if (state.mode === 'fun') modeLabel = 'Vui Vẻ';
     else if (state.mode === 'hardcore') modeLabel = 'Cường Độ Cao';
     else if (state.mode === 'extreme') modeLabel = 'Căng Cực';
+    else if (state.mode === 'daihoi') modeLabel = 'Đại Hội';
     
     elements.quizModeBadge.innerText = modeLabel;
     elements.quizModeBadge.className = `mode-indicator ${state.mode === 'fun' ? 'fun' : ''}`;
@@ -487,7 +514,7 @@ function renderQuestion() {
     elements.optionsContainer.innerHTML = '';
     
     const hasAnswered = state.answers[state.currentIndex] !== null;
-    const isPracticeOrFun = state.mode === 'practice' || state.mode === 'fun' || state.mode === 'hardcore' || state.mode === 'extreme';
+    const isPracticeOrFun = state.mode === 'practice' || state.mode === 'fun' || state.mode === 'hardcore' || state.mode === 'extreme' || state.mode === 'daihoi';
     
     q.options.forEach((optText, index) => {
         const btn = document.createElement('button');
@@ -541,7 +568,7 @@ function renderQuestion() {
 }
 
 function handleOptionSelect(index) {
-    const isPracticeOrFun = state.mode === 'practice' || state.mode === 'fun' || state.mode === 'hardcore' || state.mode === 'extreme';
+    const isPracticeOrFun = state.mode === 'practice' || state.mode === 'fun' || state.mode === 'hardcore' || state.mode === 'extreme' || state.mode === 'daihoi';
     const q = state.questions[state.currentIndex];
     
     if (isPracticeOrFun && state.answers[state.currentIndex] !== null) return;
